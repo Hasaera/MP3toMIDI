@@ -6,7 +6,15 @@ Duration=1/Fs;
 y = y0(:,1);%Suppression de la voie de droite qui comporte du bruit très faible.
 
 %% Normalisation du signal audio
-y = y / max(abs(y));
+%y = y / max(abs(y));
+Fc = 300; % 
+
+% Créer un filtre passe-bas avec la fonction butter
+[b, a] = butter(6, Fc/(Fs/2));
+
+% Appliquer le filtre à votre signal avec la fonction filter
+y = filter(b, a, y);
+plot(y)
 
 %% On restera dans le domaine temporel 
 %% Ré-échantillonage : 
@@ -29,8 +37,6 @@ y = y / max(abs(y));
 % = Tableau de frames : Division du signal window en fenêtres
 
 frameDuration = length(y)/(Fs); %Durée d'une trame en s.
-Window = 340;
-numFrames = floor(length(y) / Window)
 
 
 %% Tableaux à remplir 
@@ -88,51 +94,49 @@ bufferSize = 2; %Taille d'un tampon
 
     %f0_min = 247; % fréquence minimale pour la recherche de pitch = Si 2
     %f0_max = 1760; % fréquence maximale pour la recherche de pitch = La 5
+
+    %découper en trame
     taille = length(y);
    hopLenght = taille;%chevauchement
    amdf = zeros(1, taille); 
+   Window = round(T0_max * Fs); 
 
     for j = Window+1:length(y)-Window
-        Windowedsignal =y(j-Window+1:j).*hamming(340);
+        Windowedsignal =y(j-Window+1:j).*hamming(Window);
         for i = 1:Window
             amdf(j) = amdf(j) + abs(Windowedsignal(i) - y(j));
         end
         amdf(j) = amdf(j)/Window;
     end
        
-  
+ 
     %% Recherche de la valeur minimale de l'amdf
-    [minima, indices] = findpeaks(-amdf);%minima contient la valeur des minima trouvés
+    [minima, indices,width,hauteur] = findpeaks(-amdf);%minima contient la valeur des minima trouvés
 
     %on calcule les différentes fréquences
-    minima = -minima;
-    notes = Fs ./ indices; 
-    [sortedIndices, sortOrder] = sort(indices);
-    sortedNotes = notes(sortOrder);
-
-
+   % minima = -minima;
+   for n = 1:length(width)
+       if( width(n)> 22) && (width(n)<200 )
+         period = width(n) / Fs;
+         notes(n) = 1 / period;
+       end
+   end 
+    
 % Enregistrement des résultats dans un fichier texte
 fid = fopen('resultat.txt', 'w');
-for i = 1:length(minima/2)
-
-    time = indices(i)/Fs; %conversion de l'index du minimum en temps
-    %notes(i) = Fs/minima(i)/Fs;
-        if i== 1
-            duration = indices(i)/Fs;
-        else 
-            durations(i) = (indices(i) - indices(i-1)) /Fs;
-        end
-
+for i = 1:length(indices)
     start = max(1,indices(i)- Window);
-    volumes(i) = max(y((indices)));%sqrt(mean(y(start:indices(i)).^2))*1000;
-    pitch = convertirPitchEnNote(notes(i));
-    if(round(notes(i))>0)
-    fprintf(fid, '%d\t%d\t%f\n', round(pitch), mod(round(volumes(i)),255), durations(i));
+    volumes(i) = hauteur(i) ;
+    
+    if(notes(i)>0)
+    pitch = convertirPitchEnNote(notes(i)); 
+    durations(i)=width(i)/(Fs);
+    fprintf(fid, '%d\t%d\t%f\n', round(pitch), volumes(i)*100000, durations(i));
     end
+
 end
 fclose(fid);
-%detect_new_notes('./resultat.txt');
+detect_new_notes('./resultat.txt');
 open("./resultat.txt")
 %fin du calcul :
 toc
-

@@ -30,7 +30,7 @@ plot(y)
 % Diviser le signal en trames de durée frameDuration.
 %frameSize = round(frameDuration * Fs / facteur_decim)
 % = Nombre de points d'une frame
-%numFrames = floor(length(yDownsampled) / frameSize)
+numFrames = length(y);
 % = Nombre de frames
 %frames = reshape(yDownsampled(1:numFrames*frameSize), frameSize, numFrames);
 
@@ -43,8 +43,8 @@ frameDuration = length(y)/(Fs); %Durée d'une trame en s.
 notes = zeros(numFrames, 1);%matrice colone de taille frames de zéros
 volumes = zeros(numFrames, 1);%matrice colone de taille frames de zéros
 durations = frameDuration*ones(numFrames, 1);%matrice colone de taille frames de frameDuration*ones 
-
 bufferSize = 2; %Taille d'un tampon
+
 %for i=1:numFrames-bufferSize
     
   % Extraire 4 trames à partir de la i-ème trame
@@ -108,8 +108,7 @@ bufferSize = 2; %Taille d'un tampon
         end
         amdf(j) = amdf(j)/Window;
     end
-       
- 
+
     %% Recherche de la valeur minimale de l'amdf
     [minima, indices,width,hauteur] = findpeaks(-amdf);%minima contient la valeur des minima trouvés
 
